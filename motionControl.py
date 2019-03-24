@@ -4,13 +4,23 @@ import numpy.linalg as lin
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+'''
+In order for this file to run ffmpeg is needed.
+It is used to save the animations to an mp4 file.
+If you do not want to install ffmpeg you can comment
+out all sections where it says save().
+'''
 
+'''Returns the trapzoid approximation of the integral of f over [a,b]'''
 def Trap(f, a, b):
     return (f(a)+f(b))*(b-a)/2
 
+'''Returns the Simpson approximation of the integral of f over [a,b]'''
 def Simpson(f,a,b):
     return (f(a)+f(b)+4*f((a+b)/2))*(b-a)/6
 
+'''Returns the parametirization of the Bezier curve
+which is defined by the points p1, p2, p3 and p4'''
 def Bezier(p1,p2,p3,p4):
     bx = 3*(p2[0]-p1[0])
     cx = 3*(p3[0]-p2[0])-bx
@@ -24,6 +34,7 @@ def Bezier(p1,p2,p3,p4):
     da2 = lambda t: by + 2*cy*t + 3*dy*t**2
     return a1, a2, da1, da2
 
+''' Doubles the length of the vector v when needed (while storing the values)'''
 def lengthen(v):
     m = len(v)
     newv = np.zeros(2*m)
@@ -31,6 +42,8 @@ def lengthen(v):
         newv[i]=v[i]
     return newv
 
+''' Finds the integral of f over [a0,b0]
+within a tolerance tol0 via the Trapezoid method'''
 def adaptiveQuadrature(f, a0, b0, tol0):
     sum = 0
     n = 1
@@ -64,6 +77,8 @@ def adaptiveQuadrature(f, a0, b0, tol0):
             n += 1
     return sum
 
+''' Finds the integral of f over [a0,b0]
+within a tolerance tol0 via the Simpson method'''
 def adaptiveSimpsonsQuadrature(f, a0, b0, tol0):
     sum = 0
     n = 1
@@ -97,6 +112,8 @@ def adaptiveSimpsonsQuadrature(f, a0, b0, tol0):
             n += 1
     return sum
 
+''' Finds the root of f betwen [a,b]
+up to a an interval [c,d] of length tol.'''
 def binary(f, a, b, tol):
     if np.abs(f(a)) < tol:
         return a
@@ -112,40 +129,48 @@ def binary(f, a, b, tol):
             a = c
     return c
 
+'''Finds the root of f closes to x0 with Newtons method'''
 def Newton(f,df,x0,tol):
     x = x0
     while np.abs(f(x)) > tol:
         x -= f(x)/df(x)
     return x
 
+'''Finds the value of tstar via binary method (which is defined in the text)'''
 def tstar(arc, s, tollength, tolbinary):
     l = adaptiveQuadrature(arc, 0, 1, tollength)
     Arc = lambda t: adaptiveQuadrature(arc,0,t,tollength)-l*s
     return binary(Arc, 0, 1, tolbinary)
 
+'''Equipartitions the arc given'''
 def equiPartition(arc, n, tol):
     partition = [ tstar(arc, t, tol, tol) for t in np.linspace(0,1,n+1) ]
     return partition
 
+'''Finds the value of tstar via Newton'''
 def tstar2(arc, s, tollength, tolNewton):
     l = adaptiveQuadrature(arc, 0, 1, tollength)
     Arc = lambda t: adaptiveQuadrature(arc,0,t,tollength)-l*s
     return Newton(Arc,arc, s, tolNewton)
 
+'''Equipartitions the arc given'''
 def equiPartition2(arc, n, tol):
     partition = [ tstar2(arc, t, tol, tol) for t in np.linspace(0,1,n+1) ]
     return partition
 
+'''Finds the value of tstar via Newton with Simpson AQ integration'''
 def tstar3(arc, s, tollength, tolNewton):
     l = adaptiveSimpsonsQuadrature(arc, 0, 1, tollength)
     Arc = lambda t: adaptiveSimpsonsQuadrature(arc,0,t,tollength)-l*s
     return Newton(Arc,arc, s, tolNewton)
 
+'''Equipartitions the arc given'''
 def equiPartition3(arc, n, tol):
     partition = [ tstar3(arc, t, tol, tol) for t in np.linspace(0,1,n+1) ]
     return partition
 
-def plotCurvePartition(x, y, partition):
+'''Plots the partition given'''
+def plotCurvePartition(x, y, partition, label):
     t = np.linspace(0, 1, 500)
     vx = [x(s) for s in t]
     vy = [y(s) for s in t]
@@ -157,19 +182,20 @@ def plotCurvePartition(x, y, partition):
     plt.plot(xpoint, ypoint, 'o', label='Skiptipunktar')
     plt.legend()
     plt.axis("equal")
-    plt.title('Jafnskipting sléttuferilsins eftir bogalend')
+    plt.title(label)
     plt.xlabel("x-ás")
     plt.ylabel("y-ás")
     plt.show()
     return
 
 
-
+'''Updates the point, used in the animation method.'''
 def updatePoint(n, x, y, s, point):
     point.set_data(np.array([x(s[n]), y(s[n])]))
     return point,
 
-def animateCurve(x, y, s):
+'''Animates the curve.'''
+def animateCurve(x, y, s, label):
     fig = plt.figure()
     # create the underlying path
     t = np.linspace(0, 1, 500)
@@ -177,9 +203,9 @@ def animateCurve(x, y, s):
     line, = plt.plot(vx, vy, label='P(t)')
     # plot the first point
     point, = plt.plot([vx[0]], [vy[0]], 'o')
-    
+
     plt.legend()
-    plt.title("Umstikun með einhalla falli af bogalengd")
+    plt.title(label)
     plt.xlabel("x-ás")
     plt.ylabel("y-ás")
     plt.axis('equal')
@@ -188,12 +214,13 @@ def animateCurve(x, y, s):
 
     return ani
 
-
+'''Times the length of calling the function ten times.'''
 def timeFunction(func, *args, **kwargs):
     def wrapped():
         return func(*args)
     return timeit.timeit(wrapped, **kwargs)
 
+''' Finds the new progress speed for a given function c '''
 def parametersFromProgressCurve(arc, c, n):
     return [tstar3(arc,c(t),tol,tol) for t in np.linspace(0,1,n)]
 
@@ -218,22 +245,22 @@ tstarr = tstar(arc, s, TOL, TOL)
 print("The value of t*("+ str(s) + ") is: "+str(tstarr))
 
 
-plotCurvePartition(x, y, equiPartition(arc, 4, tol))
-plotCurvePartition(x, y, equiPartition(arc, 20, tol))
+plotCurvePartition(x, y, equiPartition(arc, 4, tol), "Feril $P$ skipt í 4 hluta með helmingunarleit.")
+plotCurvePartition(x, y, equiPartition(arc, 20, tol), "Feril $P$ skipt í 20 í hluta með helmingunarleit..")
 
 
 tstarr2 = tstar2(arc, s, TOL, TOL)
 print("The value of t*("+ str(s) + ") computed by Newton's method is: "+str(tstarr))
 
-plotCurvePartition(x, y, equiPartition2(arc, 4, tol))
-plotCurvePartition(x, y, equiPartition2(arc, 20, tol))
+plotCurvePartition(x, y, equiPartition2(arc, 4, tol), "Feril $P$ skipt í 4 hluta með aðferð Newtons.")
+plotCurvePartition(x, y, equiPartition2(arc, 20, tol), "Feril $P$ skipt í 20 hluta með aðferð Newtons.")
 
 
 tstarr3 = tstar3(arc, s, TOL, TOL)
 print("The value of t*("+ str(s) + ") computed by Newton's method is: "+str(tstarr))
 
-plotCurvePartition(x, y, equiPartition3(arc, 4, tol))
-plotCurvePartition(x, y, equiPartition3(arc, 20, tol))
+plotCurvePartition(x, y, equiPartition3(arc, 4, tol), "Feril $P$ skipt í 4 hluta með aðferð Newtons.")
+plotCurvePartition(x, y, equiPartition3(arc, 20, tol), "Feril $P$ skipt í 20 hluta með aðferð Newtons.")
 
 s=0.5
 print("Time of computing t* with AQ trapizoid and bisection method:")
@@ -251,37 +278,37 @@ arcBezier =  lambda t: np.sqrt(da1(t)**2 + da2(t)**2)
 lBezSimp = adaptiveSimpsonsQuadrature(arcBezier, 0, 1, TOL)
 print("The length of the Bézier curve is: "+ str(lBezSimp))
 
-plotCurvePartition(a1, a2, equiPartition3(arcBezier, 4, tol))
-plotCurvePartition(a1, a2, equiPartition3(arcBezier, 20, tol))
+plotCurvePartition(a1, a2, equiPartition3(arcBezier, 4, tol),"Bézier ferlinum skipt í 4 hluta.")
+plotCurvePartition(a1, a2, equiPartition3(arcBezier, 20, tol), "Bézier ferlinum skipt í 20 hluta.")
 
-ani1 = animateCurve(x, y, np.linspace(0,1,200))
+ani1 = animateCurve(x, y, np.linspace(0,1,200), "Ferillinn $P$ stilaður af $t$.")
 ani1.save("ani1.mp4", writer="ffmpeg", fps=30)
 
 sVec = [tstar3(arc,t,tol,tol) for t in np.linspace(0,1,200)]
-ani2 = animateCurve(x, y, sVec)
+ani2 = animateCurve(x, y, sVec, "Ferillinn $P$ stikaður af bogalengd.")
 ani2.save("ani2.mp4", writer="ffmpeg", fps=30)
 
-aniBez1 = animateCurve(a1, a2, np.linspace(0,1,200))
+aniBez1 = animateCurve(a1, a2, np.linspace(0,1,200), "Bézier ferill stikaður af $t$.")
 aniBez1.save("aniBez1.mp4", writer="ffmpeg", fps=30)
 
 sVecBezier = [tstar3(arcBezier,t,tol,tol) for t in np.linspace(0,1,200)]
-aniBez2 = animateCurve(a1, a2, sVecBezier)
+aniBez2 = animateCurve(a1, a2, sVecBezier, "Bézier ferill stikaður af bogalengd.")
 aniBez2.save("aniBez2.mp4", writer="ffmpeg", fps=30)
 
 
 ct1d3 = lambda t: np.power(t,1/3)
 st1d3 = parametersFromProgressCurve(arc,ct1d3,300)
-anit1d3 = animateCurve(x,y,st1d3)
+anit1d3 = animateCurve(x,y,st1d3, "Ferill $P$ umstikaður af $C(s)=s^\\frac{1}{3}$.")
 anit1d3.save("anit1d3.mp4", writer="ffmpeg", fps=30)
 
 ct2 = lambda t: np.power(t,2)
 st2 = parametersFromProgressCurve(arc,ct2,150)
-anit2 = animateCurve(x,y,st2)
+anit2 = animateCurve(x,y,st2, "Ferill $P$ umstikaður af $C(s)=s^2$.")
 anit2.save("anit2.mp4", writer="ffmpeg", fps=30)
 
-cSin = lambda t: np.sin(t*np.pi/2)
+cSin = lambda t: 1/2+1/2*np.sin((2*t-1)*np.pi/2)
 sSin = parametersFromProgressCurve(arc,cSin,150)
-aSin = animateCurve(x,y,sSin)
+aSin = animateCurve(x,y,sSin, "Ferill $P$ umstikaður af $C(s)=\\frac{1}{2}+\\frac{1}{2}\\sin((2s-1)\\pi/2 ) $.")
 aSin.save("aniSin.mp4", writer="ffmpeg", fps=30)
 
 Hx = lambda t: 16*(np.sin(2*np.pi*t))**3
@@ -290,5 +317,6 @@ Hdx = lambda t: 48*((np.sin(2*np.pi*t))**2)*np.cos(2*np.pi*t)
 Hdy = lambda t: -13*np.sin(2*np.pi*t)+10*np.sin(4*np.pi*t)+6*np.sin(6*np.pi*t)+4*np.cos(8*np.pi*t)
 Harc = lambda t: np.sqrt(Hdx(2*np.pi*t)**2 + Hdy(2*np.pi*t)**2)
 
-heart = animateCurve(Hx, Hy, np.linspace(0,1,200))
+heart = animateCurve(Hx, Hy, np.linspace(0,1,200), "Hjarta, til gamans.")
 heart.save("heart.mp4", writer="ffmpeg", fps=30)
+
