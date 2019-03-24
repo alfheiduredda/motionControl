@@ -178,9 +178,8 @@ def plotCurvePartition(x, y, partition, label):
     ypoint = [y(s) for s in partition]
 
     plt.figure()
-    plt.plot(vx, vy, label='P(t)')
-    plt.plot(xpoint, ypoint, 'o', label='Skiptipunktar')
-    plt.legend()
+    plt.plot(vx, vy)
+    plt.plot(xpoint, ypoint, 'o')
     plt.axis("equal")
     plt.title(label)
     plt.xlabel("x-ás")
@@ -200,11 +199,10 @@ def animateCurve(x, y, s, label):
     # create the underlying path
     t = np.linspace(0, 1, 500)
     vx, vy = x(t), y(t)
-    line, = plt.plot(vx, vy, label='P(t)')
+    line, = plt.plot(vx, vy)
     # plot the first point
     point, = plt.plot([vx[0]], [vy[0]], 'o')
 
-    plt.legend()
     plt.title(label)
     plt.xlabel("x-ás")
     plt.ylabel("y-ás")
@@ -281,7 +279,7 @@ print("The length of the Bézier curve is: "+ str(lBezSimp))
 plotCurvePartition(a1, a2, equiPartition3(arcBezier, 4, tol),"Bézier ferlinum skipt í 4 hluta.")
 plotCurvePartition(a1, a2, equiPartition3(arcBezier, 20, tol), "Bézier ferlinum skipt í 20 hluta.")
 
-ani1 = animateCurve(x, y, np.linspace(0,1,200), "Ferillinn $P$ stilaður af $t$.")
+ani1 = animateCurve(x, y, np.linspace(0,1,200), "Ferillinn $P$ stikaður af $t$.")
 ani1.save("ani1.mp4", writer="ffmpeg", fps=30)
 
 sVec = [tstar3(arc,t,tol,tol) for t in np.linspace(0,1,200)]
@@ -306,6 +304,11 @@ st2 = parametersFromProgressCurve(arc,ct2,150)
 anit2 = animateCurve(x,y,st2, "Ferill $P$ umstikaður af $C(s)=s^2$.")
 anit2.save("anit2.mp4", writer="ffmpeg", fps=30)
 
+cSin1 = lambda t: np.sin(t*np.pi/2)
+sSin1 = parametersFromProgressCurve(arc,cSin1,150)
+aSin1 = animateCurve(x,y,sSin1, "Ferill $P$ umstikaður af $C(s)=\\sin(s\\pi /2)$.")
+aSin1.save("anit2.mp4", writer="ffmpeg", fps=30)
+
 cSin = lambda t: 1/2+1/2*np.sin((2*t-1)*np.pi/2)
 sSin = parametersFromProgressCurve(arc,cSin,150)
 aSin = animateCurve(x,y,sSin, "Ferill $P$ umstikaður af $C(s)=\\frac{1}{2}+\\frac{1}{2}\\sin((2s-1)\\pi/2 ) $.")
@@ -319,4 +322,3 @@ Harc = lambda t: np.sqrt(Hdx(2*np.pi*t)**2 + Hdy(2*np.pi*t)**2)
 
 heart = animateCurve(Hx, Hy, np.linspace(0,1,200), "Hjarta, til gamans.")
 heart.save("heart.mp4", writer="ffmpeg", fps=30)
-
